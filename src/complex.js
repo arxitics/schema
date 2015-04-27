@@ -46,7 +46,7 @@ Complex.prototype.add = function (that) {
 
 // Complex multiplication
 Complex.prototype.multiply = function (that) {
-  // using Gauss's algorithm
+  // Gauss's algorithm
   var s = Math.imul(this.real + this.imaginary, that.real);
   var t = Math.imul(this.real, that.imaginary - that.real);
   var u = Math.imul(this.imaginary, that.real + that.imaginary);

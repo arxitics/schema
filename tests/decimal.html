@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Decimal</title>
+  </head>
+  <body>
+    <script src="../src/decimal.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function (event) { 
+        var start = performance.now();
+        for (var k = 0; k < 1; k++) {
+          for (var i = 0; i <= 10; i++) {
+            var big1 = new Decimal('79'.repeat(1000 + i));
+            var big2 = new Decimal('84'.repeat(1000 + i));
+            var sum = big1.add(big2);
+            var product = big1.multiply(big2);
+            console.log(sum.toString());
+            console.log(product.toString());
+          }
+        }
+        var end = performance.now();
+        console.log(end - start);
+
+        
+      });
+    </script>
+  </body>
+</html>
