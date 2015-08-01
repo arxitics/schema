@@ -1,0 +1,49 @@
+{
+  "name": "schema",
+  "version": "0.0.1",
+  "description": "A computer algebra system written in pure JavaScript",
+  "keywords": [
+    "computer algebra system",
+    "symbolic comupting",
+    "numerical computing",
+    "mathematics",
+    "JavaScript"
+  ],
+  "homepage": "http://arxitics.github.io/schema",
+  "author": {
+    "name": "Zan Pan",
+    "email": "panzan89@gmail.com"
+  },
+  "scripts": {
+    "test": "mocha --ui bdd --compilers js:babel/register"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arxitics/schema"
+  },
+  "bugs": {
+    "url": "https://github.com/arxitics/schema/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": "0.12.7"
+  },
+  "os": [
+    "linux"
+  ],
+  "devDependencies": {
+    "gulp": "3.9.0",
+    "gulp-babel": "5.2.0",
+    "gulp-concat": "2.5.2",
+    "gulp-header": "1.2.2",
+    "gulp-jade": "1.0.1",
+    "gulp-jshint": "1.11.2",
+    "gulp-mocha": "2.1.3",
+    "gulp-rename": "1.2.2",
+    "gulp-sourcemaps": "1.5.2",
+    "gulp-uglify": "1.2.0",
+    "babel": "5.8.19",
+    "jade": "1.11.0",
+    "uglify-js": "2.4.23"
+  }
+}

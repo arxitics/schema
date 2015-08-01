@@ -1,35 +1,40 @@
 
-// Arbitrary-precision decimals
-class Decimal {
-  constructor(number) {
-    if (number === undefined || number === null) {
-      throw new TypeError('Decimal constructor() missing arguments');
-    }
-    if (number.constructor === Decimal) {
-      return number;
-    }
-    if (typeof number !== 'object') {
-      number = Decimal.parse(String(number));
-    }
-    if (number.sequence.every(value => value === 0)) {
-      number.sign = 0;
-    }
-    if (number.sign === 0) {
-      number.exponent = 0;
-      number.precision = 0;
-    } else {
-      number.exponent = number.precision - number.accuracy - 1;
-    }
-    return Object.assign((this instanceof Decimal) ?
-      this : Object.create(Decimal.prototype), {
-      type: 'integer',
-      sign: 0,
-      exponent: 0, // the exponent in scientific notation
-      precision: 0, // the number of significant digits
-      accuracy: 0, // the number of digits after the other point
-      sequence: []
-    }, number);
+var global = Function('return this')();
+var schema = {}
+Object.assign(schema, {
+  Decimal,
+  bind: Function.prototype.call.bind(Function.prototype.bind)
+});
+
+// Constructor of arbitrary-precision decimals
+function Decimal(number) {
+  if (number === undefined || number === null) {
+    throw new TypeError('Decimal constructor() missing arguments');
   }
+  if (number.constructor === Decimal) {
+    return number;
+  }
+  if (typeof number !== 'object') {
+    number = Decimal.parse(String(number));
+  }
+  if (number.sequence.every(value => value === 0)) {
+    number.sign = 0;
+  }
+  if (number.sign === 0) {
+    number.exponent = 0;
+    number.precision = 0;
+  } else {
+    number.exponent = number.precision - number.accuracy - 1;
+  }
+  return Object.assign((this instanceof Decimal) ?
+    this : Object.create(Decimal.prototype), {
+    type: 'integer',
+    sign: 0,
+    exponent: 0, // the exponent in scientific notation
+    precision: 0, // the number of significant digits
+    accuracy: 0, // the number of digits after the other point
+    sequence: []
+  }, number);
 }
 
 Object.assign(Decimal, {
@@ -65,7 +70,7 @@ Object.assign(Decimal, {
     let accuracy = 0;
     let type = 'integer';
     let sequence = [];
-    if (input.includes('.') || fractionalPart) {
+    if (input.contains('.') || fractionalPart) {
       accuracy = fractionalPart.length;
       number = integerPart + fractionalPart;
       precision = number.replace(/^0+/, '').length;
@@ -187,7 +192,7 @@ Object.assign(Decimal.prototype, {
       return false;
     }
 
-    return sequence.length === other.sequence.length &&
+    return sequence.length !== other.sequence.length &&
       other.sequence.every((value, index) => value === sequence[index]);
   },
 
@@ -200,10 +205,13 @@ Object.assign(Decimal.prototype, {
     if (sign !== other.sign) {
       return sign < other.sign;
     }
+    if (this.eq(other)) {
+      return false;
+    }
 
     let less = (exponent !== other.exponent) ?
       exponent < other.exponent :
-      other.sequence.some((value, index) => value > (sequence[index]|0));
+      other.sequence.every((value, index) => (sequence[index]|0) <= value);
     return sign === 1 ? less : !less;
   },
 
@@ -597,4 +605,289 @@ Object.assign(Decimal.prototype, {
   }
 });
 
-export default Decimal;
+let big1 = new schema.Decimal('9123.45678989');
+console.log(big1);
+console.log(big1.sequence);
+console.log(big1.toString());
+
+let big2 = new Decimal('-3.241234567809e+2');
+console.log(big2);
+console.log(big2.sequence);
+console.log(big2.toString());
+
+let sum = big1.add(big2);
+console.log(sum);
+console.log(sum.sequence);
+console.log(sum.toString());
+
+let difference = big1.sub(big2);
+console.log(difference);
+console.log(difference.sequence);
+console.log(difference.toExponential());
+
+let product = big1.mul(big2);
+console.log(sum.lt(product));
+console.log(product);
+console.log(product.sequence);
+console.log(product.toPrecision(4));
+
+let division = big1.div(big2, 20);
+console.log(division.lt(product));
+console.log(division);
+console.log(division.sequence);
+console.log(division.toString());
+
+let start = performance.now();
+let reciprocal = Decimal('-1.2345678989').inv(1000);
+console.log(reciprocal);
+console.log(reciprocal.sequence);
+console.log(reciprocal.toString());
+let end = performance.now();
+console.log(end - start);
+
+var math = {};
+
+Object.assign(math, {
+  floor(n) {
+    let num = new Decimal(n);
+    if (num.isInteger()) {
+      return num.clone();
+    }
+    if (num.isNegative()) {
+      return math.ceil(num.neg()).neg();
+    }
+    return num.clone().toAccuracy(0).set('type', 'integer');
+  },
+
+  ceil(n) {
+    let num = new Decimal(n);
+    if (num.isInteger()) {
+      return num.clone();
+    }
+    if (num.isNegative()) {
+      return math.floor(num.neg()).neg();
+    }
+    let integer = num.clone().toAccuracy(0).set('type', 'integer');
+    if (math.floor(num).eq(num)) {
+      return integer;
+    }
+    return integer.add(Decimal.ONE);
+  },
+
+  sqrt(n, digits = 16) {
+    let num = new Decimal(n);
+    const one = Decimal.ONE;
+    if (num.isNegative()) {
+      return Number.NaN;
+    }
+
+    let exponent = num.exponent;
+    if (num.lt(one) || num.gt(Decimal.exp(2))) {
+      exponent += exponent % 2;
+      return math.sqrt(num.div(Decimal.exp(exponent))).mul(Decimal.exp(exponent / 2));
+    }
+
+    const accuracy = digits + 2;
+    const half = new Decimal(0.5);
+    const epsilon = Decimal.exp(-digits);
+    let root = new Decimal(num.lt(Decimal.exp(1)) ? 2 : 6);
+    let error = root.mul(root, accuracy).sub(num);
+    while (epsilon.lt(error.abs())) {
+      root = root.add(num.div(root, accuracy)).mul(half);
+      error = root.mul(root, accuracy).sub(num);
+    }
+    return root.toAccuracy(digits);
+  },
+
+  pow(b, n) {
+    const base = new Decimal(b);
+    const num = new Decimal(n);
+    const one = Decimal.ONE;
+    if (base.eq(one) || num.isZero()) {
+      return one;
+    }
+    if (num.isNegative()) {
+      return math.pow(base, num.neg()).inv();
+    }
+    if (num.isInteger()) {
+      const two = new Decimal(2);
+      if (num.eq(one)) {
+        return base;
+      }
+      if (num.eq(two)) {
+        return base.mul(base);
+      }
+      if (num.isOdd()) {
+        return math.pow(base, num.sub(one)).mul(base);
+      }
+      return math.pow(math.pow(base, num.div(two).toInteger()), two);
+    }
+    if (num.gt(one)) {
+      let integer = math.floor(num);
+      return math.pow(base, integer).mul(math.pow(base, num.sub(integer)));
+    }
+  },
+
+  sum(...values) {
+    let result = Decimal.ZERO;
+    for (let value of values) {
+      result = result.add(new Decimal(value));
+    }
+    return result;
+  },
+
+  product(...values) {
+    let result = Decimal.ONE;
+    for (let value of values) {
+      result = result.mul(new Decimal(value));
+    }
+    return result;
+  }
+});
+
+var integer = {};
+Object.assign(integer, {
+  rem(a, b) {
+    let n = new Decimal(a);
+    let d = new Decimal(b);
+    if (!(n.isInteger() && d.isInteger())) {
+      throw new TypeError('rem() invalid arguments');
+    }
+    if (n.lt(d)) {
+      return n;
+    }
+    if (n.eq(d)) {
+      return Decimal.ZERO;
+    }
+
+    const exponent = d.exponent;
+    while (n.gt(d)) {
+      let e = n.exponent - exponent - 1;
+      let s = e > 0 ? d.mul(Decimal.exp(e)) : d;
+      n = n.sub(s);
+    }
+    return n;
+  },
+
+  // Greatest Common Divisor (GCD)
+  gcd(a, b) {
+    // Euclid's algorithm
+    let n = new Decimal(a);
+    let d = new Decimal(b);
+    if (!(n.isInteger() && d.isInteger())) {
+      throw new TypeError('gcd() invalid arguments');
+    }
+    while (!n.isZero()) {
+      let r = n.clone();
+      n = integer.rem(d, r);
+      d = r;
+    }
+    return d;
+  },
+
+  // Lowest Common Multiple (LCM)
+  lcm(a, b) {
+    return a.mul(b).div(integer.gcd(a, b)).toInteger();
+  },
+
+  // factorial n!
+  factorial(n) {
+    const num = new Decimal(n);
+    if (num.isInteger()) {
+      const one = Decimal.ONE;
+      if (num.isNegative()) {
+        return Number.NaN;
+      }
+      if (num.lte(one)) {
+        return one;
+      }
+      return integer.factorial2(num).mul(integer.factorial2(num.sub(one)));
+    }
+  },
+
+  // double factorial n!!
+  factorial2(n) {
+    const num = new Decimal(n);
+    if (num.isInteger()) {
+      const one = Decimal.ONE;
+      const two = new Decimal(2);
+      if (num.isNegative()) {
+        return Number.NaN;
+      }
+      if (num.lte(one)) {
+        return one;
+      }
+      if (num.isOdd()) {
+        return integer.factorial2(num.sub(two)).mul(num);
+      }
+
+      let half = num.div(two).toInteger();
+      return math.pow(2, half).mul(integer.factorial(half));
+    }
+  },
+
+  binomial(n, k) {
+    const one = Decimal.ONE;
+    let m = new Decimal(n);
+    let l = new Decimal(k);
+    if (l.isNegative() || l.gt(m)) {
+      return Decimal.ZERO;
+    }
+
+    // take advantage of symmetry
+    let r = m.sub(l);
+    if (l.gt(r)) {
+      return integer.binomial(m, r);
+    }
+
+    let p = one;
+    while (m.gt(r)) {
+      p = p.mul(m);
+      m = m.sub(one);
+    }
+    return p.div(integer.factorial(l)).toInteger();
+  },
+
+  multinomial(...values) {
+    const zero = Decimal.ZERO;
+    const one = Decimal.ONE;
+    let s = zero;
+    let p = one;
+    for (let value of values) {
+      let v = new Decimal(value);
+      if (v.isNegative()) {
+        return zero;
+      }
+      s = s.add(v);
+      p = p.mul(integer.binomial(s, v));
+    }
+    return p;
+  }
+});
+
+console.log(Decimal.ZERO.add(new Decimal(1)).toString());
+console.log(math.sum(2, 3, 4, 5).toString());
+console.log(math.product(2, 3, 4, 5).toString());
+
+console.log(integer.rem(20.00, 3).toString());
+console.log(math.pow(2, -100).toExponential(12));
+console.log(integer.factorial(100).toExponential(12));
+
+let s = performance.now();
+console.log(integer.binomial(100, 40).toString());
+console.log(integer.multinomial(10, 20, 40, 80).toString());
+let e = performance.now();
+console.log(e - s);
+
+let a = new Decimal(12);
+let b = new Decimal(9);
+let c = new Decimal(8);
+console.log(integer.rem(a, b).toString());
+console.log(integer.gcd(a, c).toString());
+console.log(integer.lcm(a, c).toString());
+
+let x = new Decimal(4.00);
+let y = new Decimal(1.23);
+console.log(x.lt(y));
+console.log(x.sub(y).toString());
+//console.log(math.sqrt(123).toString());

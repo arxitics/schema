@@ -1,70 +1,88 @@
 
 // Arbitrary-precision decimals
-class Decimal {
-  constructor(number) {
-    if (number === undefined || number === null) {
-      throw new TypeError('Decimal constructor() missing arguments');
-    }
-    if (number.constructor === Decimal) {
-      return number;
-    }
-    if (typeof number !== 'object') {
-      number = Decimal.parse(String(number));
-    }
-    if (number.sequence.every(value => value === 0)) {
-      number.sign = 0;
-    }
-    if (number.sign === 0) {
-      number.exponent = 0;
-      number.precision = 0;
-    } else {
-      number.exponent = number.precision - number.accuracy - 1;
-    }
-    return Object.assign((this instanceof Decimal) ?
-      this : Object.create(Decimal.prototype), {
-      type: 'integer',
-      sign: 0,
-      exponent: 0, // the exponent in scientific notation
-      precision: 0, // the number of significant digits
-      accuracy: 0, // the number of digits after the other point
-      sequence: []
-    }, number);
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+
+var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i]; return arr2; } else { return Array.from(arr); } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+var Decimal = function Decimal(number) {
+  _classCallCheck(this, Decimal);
+
+  if (number === undefined || number === null) {
+    throw new TypeError('Decimal constructor() missing arguments');
   }
-}
+  if (number.constructor === Decimal) {
+    return number;
+  }
+  if (typeof number !== 'object') {
+    number = Decimal.parse(String(number));
+  }
+  if (number.sequence.every(function (value) {
+    return value === 0;
+  })) {
+    number.sign = 0;
+  }
+  if (number.sign === 0) {
+    number.exponent = 0;
+    number.precision = 0;
+  } else {
+    number.exponent = number.precision - number.accuracy - 1;
+  }
+  return Object.assign(this instanceof Decimal ? this : Object.create(Decimal.prototype), {
+    type: 'integer',
+    sign: 0,
+    exponent: 0, // the exponent in scientific notation
+    precision: 0, // the number of significant digits
+    accuracy: 0, // the number of digits after the other point
+    sequence: []
+  }, number);
+};
 
 Object.assign(Decimal, {
-  parse(string) {
-    let input = String(string).trim();
-    let matches = input.replace(/^\D+/, '').match(/^(\d+)(?:\.(\d*))?([Ee]([\+\-]?\d+))?$/);
+  parse: function parse(string) {
+    var input = String(string).trim();
+    var matches = input.replace(/^\D+/, '').match(/^(\d+)(?:\.(\d*))?([Ee]([\+\-]?\d+))?$/);
     if (!matches) {
       throw new TypeError('Decimal.parse() invalid arguments');
     }
 
-    let [number, integerPart, fractionalPart, notation, exponent] = matches;
+    var _matches = _slicedToArray(matches, 5);
+
+    var number = _matches[0];
+    var integerPart = _matches[1];
+    var fractionalPart = _matches[2];
+    var notation = _matches[3];
+    var exponent = _matches[4];
+
     if (notation) {
       number = number.replace(notation, '');
       exponent = Number.parseInt(exponent);
       if (exponent > 0) {
         if (fractionalPart) {
-          let padding = exponent - fractionalPart.length;
-          integerPart += fractionalPart.slice(0, exponent) +
-            (padding > 0 ? '0'.repeat(padding) : '');
+          var padding = exponent - fractionalPart.length;
+          integerPart += fractionalPart.slice(0, exponent) + (padding > 0 ? '0'.repeat(padding) : '');
           fractionalPart = fractionalPart.slice(exponent);
         } else {
           number += '0'.repeat(exponent);
         }
       } else if (exponent < 0) {
-        let shift = integerPart.length + exponent;
-        fractionalPart = (shift < 0 ? '0'.repeat(-shift) : '') +
-          integerPart.slice(exponent) + (fractionalPart || '');
-        integerPart = (shift <= 0) ? '0' : integerPart.slice(0, exponent);
+        var shift = integerPart.length + exponent;
+        fractionalPart = (shift < 0 ? '0'.repeat(-shift) : '') + integerPart.slice(exponent) + (fractionalPart || '');
+        integerPart = shift <= 0 ? '0' : integerPart.slice(0, exponent);
       }
     }
 
-    let precision = number.length;
-    let accuracy = 0;
-    let type = 'integer';
-    let sequence = [];
+    var precision = number.length;
+    var accuracy = 0;
+    var type = 'integer';
+    var sequence = [];
     if (input.includes('.') || fractionalPart) {
       accuracy = fractionalPart.length;
       number = integerPart + fractionalPart;
@@ -74,37 +92,37 @@ Object.assign(Decimal, {
         number += '0'.repeat(8 - accuracy % 8);
       }
     }
-    let length = number.length;
-    for (let i = 0, j = (length % 8 || 8); j <= length; i = j, j += 8) {
-      sequence.push(Number.parseInt(number.slice(i, j), 10)|0);
+    var length = number.length;
+    for (var i = 0, j = length % 8 || 8; j <= length; i = j, j += 8) {
+      sequence.push(Number.parseInt(number.slice(i, j), 10) | 0);
     }
     while (sequence[0] === 0) {
       sequence.shift();
     }
     return {
-      type,
+      type: type,
       sign: input.startsWith('-') ? -1 : 1,
-      precision,
-      accuracy,
-      sequence
+      precision: precision,
+      accuracy: accuracy,
+      sequence: sequence
     };
   },
 
-  exp(exponent) {
+  exp: function exp(exponent) {
     if (!Number.isInteger(exponent)) {
       throw new TypeError('Decimal.exp() invalid arguments');
     }
-    let isInteger = exponent >= 0;
-    let sequence = [Math.pow(10, (8 + exponent % 8) % 8)];
+    var isInteger = exponent >= 0;
+    var sequence = [Math.pow(10, (8 + exponent % 8) % 8)];
     if (isInteger) {
-      sequence.push(...new Array(Math.floor(exponent / 8)).fill(0));
+      sequence.push.apply(sequence, _toConsumableArray(new Array(Math.floor(exponent / 8)).fill(0)));
     }
     return new Decimal({
       type: isInteger ? 'integer' : 'real',
       sign: 1,
       precision: isInteger ? exponent + 1 : 1,
       accuracy: isInteger ? 0 : -exponent,
-      sequence
+      sequence: sequence
     });
   }
 });
@@ -124,8 +142,8 @@ Object.defineProperties(Decimal, {
   }
 });
 
-Object.assign(Decimal.prototype, {
-  set(key, value) {
+Object.assign(Decimal.prototype, Object.defineProperties({
+  set: function set(key, value) {
     if (value === undefined) {
       if (this.sign && key === 'precision') {
         this.precision = this.toString().replace(/\D/g, '').replace(/^0+/, '').length;
@@ -137,115 +155,127 @@ Object.assign(Decimal.prototype, {
     return this;
   },
 
-  get(key) {
+  get: function get(key) {
     return this[key];
   },
 
-  isInteger() {
+  isInteger: function isInteger() {
     return this.type === 'integer';
   },
 
-  isReal() {
+  isReal: function isReal() {
     return this.type === 'real';
   },
 
-  isZero() {
+  isZero: function isZero() {
     return this.sign === 0;
   },
 
-  isPositive() {
+  isPositive: function isPositive() {
     return this.sign === 1;
   },
 
-  isNegative() {
+  isNegative: function isNegative() {
     return this.sign === -1;
   },
 
-  isEven() {
-    if (!(this.isInteger())) {
+  isEven: function isEven() {
+    if (!this.isInteger()) {
       throw new TypeError('isEven() required an instance of Integer Class');
     }
-    let sequence = this.sequence;
+    var sequence = this.sequence;
     return sequence[sequence.length - 1] % 2 === 0;
   },
 
-  isOdd() {
-    if (!(this.isInteger())) {
+  isOdd: function isOdd() {
+    if (!this.isInteger()) {
       throw new TypeError('isOdd() required an instance of Integer Class');
     }
-    let sequence = this.sequence;
+    var sequence = this.sequence;
     return sequence[sequence.length - 1] % 2 === 1;
   },
 
-  eq(other) {
+  eq: function eq(other) {
     if (other.constructor !== Decimal) {
       throw new TypeError('eq() required an instance of Decimal class');
     }
 
-    let {sign, exponent, sequence} = this;
+    var sign = this.sign;
+    var exponent = this.exponent;
+    var sequence = this.sequence;
+
     if (sign !== other.sign || exponent !== other.exponent) {
       return false;
     }
 
-    return sequence.length === other.sequence.length &&
-      other.sequence.every((value, index) => value === sequence[index]);
+    return sequence.length === other.sequence.length && other.sequence.every(function (value, index) {
+      return value === sequence[index];
+    });
   },
 
-  lt(other) {
+  lt: function lt(other) {
     if (other.constructor !== Decimal) {
       throw new TypeError('lt() required an instance of Decimal class');
     }
 
-    let {sign, exponent, sequence} = this;
+    var sign = this.sign;
+    var exponent = this.exponent;
+    var sequence = this.sequence;
+
     if (sign !== other.sign) {
       return sign < other.sign;
     }
 
-    let less = (exponent !== other.exponent) ?
-      exponent < other.exponent :
-      other.sequence.some((value, index) => value > (sequence[index]|0));
+    var less = exponent !== other.exponent ? exponent < other.exponent : other.sequence.some(function (value, index) {
+      return value > (sequence[index] | 0);
+    });
     return sign === 1 ? less : !less;
   },
 
-  lte(other) {
+  lte: function lte(other) {
     if (other.constructor !== Decimal) {
       throw new TypeError('lte() required an instance of Decimal class');
     }
     return this.lt(other) || this.eq(other);
   },
 
-  gt(other) {
+  gt: function gt(other) {
     if (other.constructor !== Decimal) {
       throw new TypeError('gt() required an instance of Decimal class');
     }
     return other.lt(this);
   },
 
-  gte(other) {
+  gte: function gte(other) {
     if (other.constructor !== Decimal) {
       throw new TypeError('gte() required an instance of Decimal class');
     }
     return this.gt(other) || this.eq(other);
   },
 
-  neg() {
+  neg: function neg() {
     return new Decimal(this.toSource()).set('sign', -this.sign);
   },
 
-  abs() {
+  abs: function abs() {
     if (this.isNegative()) {
       return this.neg();
     }
     return this.clone();
   },
 
-  add(other, digits) {
+  add: function add(other, digits) {
     if (other.constructor !== Decimal) {
       throw new TypeError('add() required an instance of Decimal class');
     }
 
-    let {sign, exponent, accuracy, sequence: augend} = this;
-    let {sign: signum, sequence: addend} = other;
+    var sign = this.sign;
+    var exponent = this.exponent;
+    var accuracy = this.accuracy;
+    var augend = this.sequence;
+    var signum = other.sign;
+    var addend = other.sequence;
+
     if (sign === 0) {
       return other.clone();
     }
@@ -266,7 +296,7 @@ Object.assign(Decimal.prototype, {
     }
     // a < -b : a + b => -((-b) + (-a))
     if (sign > signum) {
-      let summand = other.neg();
+      var summand = other.neg();
       if (this.lt(summand)) {
         return summand.add(this.neg(), digits).neg();
       }
@@ -278,15 +308,15 @@ Object.assign(Decimal.prototype, {
       digits = accuracy;
     }
 
-    let length = Math.ceil((Math.abs(exponent) + accuracy) / 8) + 2;
-    let shift = length - Math.ceil(accuracy / 8);
-    let augendShift = augend.length - Math.ceil(this.accuracy / 8) - shift;
-    let addendShift = addend.length - Math.ceil(other.accuracy / 8) - shift;
-    let sequence = new Array(length).fill(0);
-    const radix = 100000000;
-    for (let index = length - 1; index > 0; index--) {
-      let value = sequence[index];
-      value += (augend[index + augendShift]|0) + signum * (addend[index + addendShift]|0);
+    var length = Math.ceil((Math.abs(exponent) + accuracy) / 8) + 2;
+    var shift = length - Math.ceil(accuracy / 8);
+    var augendShift = augend.length - Math.ceil(this.accuracy / 8) - shift;
+    var addendShift = addend.length - Math.ceil(other.accuracy / 8) - shift;
+    var sequence = new Array(length).fill(0);
+    var radix = 100000000;
+    for (var index = length - 1; index > 0; index--) {
+      var value = sequence[index];
+      value += (augend[index + augendShift] | 0) + signum * (addend[index + addendShift] | 0);
       if (value >= radix || value < 0) {
         sequence[index - 1] += signum;
         value -= signum * radix;
@@ -297,14 +327,14 @@ Object.assign(Decimal.prototype, {
       sequence.shift();
     }
     return new Decimal({
-      type: (this.isReal() || other.isReal()) ? 'real' : 'integer',
+      type: this.isReal() || other.isReal() ? 'real' : 'integer',
       sign: sign || signum,
-      accuracy,
-      sequence
+      accuracy: accuracy,
+      sequence: sequence
     }).set('precision').toAccuracy(digits);
   },
 
-  sub(other, digits) {
+  sub: function sub(other, digits) {
     if (other.constructor !== Decimal) {
       throw new TypeError('sub() required an instance of Decimal class');
     }
@@ -321,7 +351,7 @@ Object.assign(Decimal.prototype, {
     return this.add(other.neg(), digits);
   },
 
-  mul(other, digits) {
+  mul: function mul(other, digits) {
     if (other.constructor !== Decimal) {
       throw new TypeError('mul() required an instance of Decimal class');
     }
@@ -330,7 +360,7 @@ Object.assign(Decimal.prototype, {
       return Decimal.ZERO;
     }
 
-    const one = Decimal.ONE;
+    var one = Decimal.ONE;
     if (this.eq(one)) {
       return other.clone();
     }
@@ -339,45 +369,45 @@ Object.assign(Decimal.prototype, {
     }
 
     // retain maximum accuracy
-    let accuracy = this.accuracy + other.accuracy;
+    var accuracy = this.accuracy + other.accuracy;
     if (digits === undefined || digits < 0) {
       digits = accuracy;
     }
 
-    let multiplicand = this.sequence.slice().reverse();
-    let multiplier = other.sequence.slice().reverse();
-    let length = multiplicand.length + multiplier.length;
-    let buffer = new ArrayBuffer(4 * length);
-    let sequence = Array.of(...(function (stdlib, foreign, buffer) {
+    var multiplicand = this.sequence.slice().reverse();
+    var multiplier = other.sequence.slice().reverse();
+    var length = multiplicand.length + multiplier.length;
+    var buffer = new ArrayBuffer(4 * length);
+    var sequence = Array.of.apply(Array, _toConsumableArray((function (stdlib, foreign, buffer) {
       'use asm';
-      const radix = 100000000;
-      const base = 10000;
-      let floor = stdlib.Math.floor;
-      let imul = stdlib.Math.imul;
-      let multiplicand = foreign.multiplicand;
-      let multiplier = foreign.multiplier;
-      let values = new stdlib.Int32Array(buffer);
-      for (let index = 0, length = values.length; index < length; index++) {
-        let value = values[index];
-        let nextIndex = index + 1;
-        for (let i = 0; i <= index; i++) {
-          let a = multiplicand[i]|0;
-          let b = multiplier[index - i]|0;
-          let a0 = a % base;
-          let b0 = b % base;
-          let a1 = floor(a / base);
-          let b1 = floor(b / base);
+      var radix = 100000000;
+      var base = 10000;
+      var floor = stdlib.Math.floor;
+      var imul = stdlib.Math.imul;
+      var multiplicand = foreign.multiplicand;
+      var multiplier = foreign.multiplier;
+      var values = new stdlib.Int32Array(buffer);
+      for (var index = 0, _length = values.length; index < _length; index++) {
+        var value = values[index];
+        var nextIndex = index + 1;
+        for (var i = 0; i <= index; i++) {
+          var a = multiplicand[i] | 0;
+          var b = multiplier[index - i] | 0;
+          var a0 = a % base;
+          var b0 = b % base;
+          var a1 = floor(a / base);
+          var b1 = floor(b / base);
           // Karatsuba algorithm
-          let c0 = imul(a0, b0);
-          let c2 = imul(a1, b1);
-          let c1 = imul(a0 + a1, b0 + b1) - c0 - c2;
+          var c0 = imul(a0, b0);
+          var c2 = imul(a1, b1);
+          var c1 = imul(a0 + a1, b0 + b1) - c0 - c2;
           value += c0 + imul(c1 % base, base);
           c2 += floor(c1 / base);
           if (value >= radix || c2) {
             values[nextIndex] += floor(value / radix) + c2;
             value %= radix;
-            for (let j = nextIndex; values[j] >= radix; j++) {
-              let element = values[j];
+            for (var j = nextIndex; values[j] >= radix; j++) {
+              var element = values[j];
               values[j + 1] += floor(element / radix);
               values[j] = element % radix;
             }
@@ -386,10 +416,10 @@ Object.assign(Decimal.prototype, {
         values[index] = value;
       }
       return values;
-    })(global, {multiplicand, multiplier}, buffer)).reverse();
+    })(global, { multiplicand: multiplicand, multiplier: multiplier }, buffer))).reverse();
     if (sequence[length - 1] === 0) {
-      let remainder = this.accuracy % 8;
-      let rest = other.accuracy % 8;
+      var remainder = this.accuracy % 8;
+      var rest = other.accuracy % 8;
       if (remainder && rest && remainder + rest % 8 <= 8) {
         sequence.pop();
       }
@@ -398,22 +428,22 @@ Object.assign(Decimal.prototype, {
       sequence.shift();
     }
     return new Decimal({
-      type: (this.type === 'real' || other.type === 'real') ? 'real' : 'integer',
+      type: this.type === 'real' || other.type === 'real' ? 'real' : 'integer',
       sign: this.sign * other.sign,
-      accuracy,
-      sequence
+      accuracy: accuracy,
+      sequence: sequence
     }).set('precision').toAccuracy(digits);
   },
 
-  div(other, digits) {
+  div: function div(other, digits) {
     if (other.constructor !== Decimal) {
       throw new TypeError('div() required an instance of Decimal class');
     }
 
     if (other.isZero()) {
-      let sign = this.sign;
+      var sign = this.sign;
       if (sign !== 0) {
-        return (sign === -1) ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+        return sign === -1 ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
       }
       return Number.NaN;
     }
@@ -424,9 +454,13 @@ Object.assign(Decimal.prototype, {
   },
 
   // use Newton's method to find the reciprocal
-  inv(digits = 16) {
-    let {sign, exponent, sequence} = this;
-    const one = Decimal.ONE;
+  inv: function inv() {
+    var digits = arguments.length <= 0 || arguments[0] === undefined ? 16 : arguments[0];
+    var sign = this.sign;
+    var exponent = this.exponent;
+    var sequence = this.sequence;
+
+    var one = Decimal.ONE;
     if (sign === 0) {
       return Number.POSITIVE_INFINITY;
     }
@@ -437,14 +471,14 @@ Object.assign(Decimal.prototype, {
       return one;
     }
     if (this.gt(one) || this.lt(new Decimal(0.1))) {
-      let string = this.toString().replace(/^0\.0+|\./, '');
+      var string = this.toString().replace(/^0\.0+|\./, '');
       return new Decimal('0.' + string).inv(digits).mul(Decimal.exp(-exponent - 1));
     }
 
-    const accuracy = digits + 1;
-    const epsilon = Decimal.exp(-digits);
-    let reciprocal = new Decimal(100000000 / sequence[0]);
-    let error = one.sub(this.mul(reciprocal));
+    var accuracy = digits + 1;
+    var epsilon = Decimal.exp(-digits);
+    var reciprocal = new Decimal(100000000 / sequence[0]);
+    var error = one.sub(this.mul(reciprocal));
     while (epsilon.lt(error.abs())) {
       reciprocal = reciprocal.add(reciprocal.mul(error, accuracy));
       error = one.sub(this.mul(reciprocal, accuracy));
@@ -452,28 +486,31 @@ Object.assign(Decimal.prototype, {
     return reciprocal.toAccuracy(digits);
   },
 
-  toAccuracy(digits) {
-    let {type, accuracy, sequence} = this;
+  toAccuracy: function toAccuracy(digits) {
+    var type = this.type;
+    var accuracy = this.accuracy;
+    var sequence = this.sequence;
+
     if (digits >= 0 && digits !== accuracy) {
-      let padding = digits - accuracy;
+      var padding = digits - accuracy;
       if (type === 'real') {
         if (padding < 0) {
           // remove last elements
           sequence.length -= Math.ceil(accuracy / 8) - Math.ceil(digits / 8);
           if (digits % 8) {
-            let lastIndex = sequence.length - 1;
-            let lastValue = sequence[lastIndex];
+            var lastIndex = sequence.length - 1;
+            var lastValue = sequence[lastIndex];
             sequence[lastIndex] -= lastValue % Math.pow(10, 8 - digits % 8);
           }
         } else {
           if (accuracy % 8) {
             padding -= 8 - accuracy % 8;
           }
-          sequence.push(...new Array(Math.ceil(padding / 8)).fill(0));
+          sequence.push.apply(sequence, _toConsumableArray(new Array(Math.ceil(padding / 8)).fill(0)));
         }
       }
       if (type === 'integer' && digits > 0) {
-        sequence.push(...new Array(Math.ceil(digits / 8)).fill(0));
+        sequence.push.apply(sequence, _toConsumableArray(new Array(Math.ceil(digits / 8)).fill(0)));
       }
       this.precision += padding;
       this.accuracy = digits;
@@ -482,12 +519,12 @@ Object.assign(Decimal.prototype, {
     return this;
   },
 
-  toInteger() {
+  toInteger: function toInteger() {
     if (this.isInteger()) {
       return this;
     }
 
-    let rounding = this.sequence[Math.floor(this.exponent / 8) + 1];
+    var rounding = this.sequence[Math.floor(this.exponent / 8) + 1];
     this.toAccuracy(0).set('type', 'integer');
     if (rounding < 50000000) {
       return this;
@@ -495,17 +532,22 @@ Object.assign(Decimal.prototype, {
     return this.add(Decimal.ONE);
   },
 
-  toString() {
-    let {sign, accuracy, sequence} = this;
+  toString: function toString() {
+    var sign = this.sign;
+    var accuracy = this.accuracy;
+    var sequence = this.sequence;
+
     if (sign === 0) {
       return '0';
     }
 
-    let string = sequence.map(value => '0'.repeat(8 - String(value).length) + value).join('');
+    var string = sequence.map(function (value) {
+      return '0'.repeat(8 - String(value).length) + value;
+    }).join('');
     if (accuracy > 0) {
-      let length = string.length;
-      if (accuracy > length) {
-        string = '0'.repeat(accuracy - length) + string;
+      var _length2 = string.length;
+      if (accuracy > _length2) {
+        string = '0'.repeat(accuracy - _length2) + string;
       }
       if (accuracy % 8) {
         string = string.slice(0, accuracy % 8 - 8);
@@ -516,7 +558,9 @@ Object.assign(Decimal.prototype, {
   },
 
   // format a number using fixed-point notation
-  toFixed(digits = 0) {
+  toFixed: function toFixed() {
+    var digits = arguments.length <= 0 || arguments[0] === undefined ? 0 : arguments[0];
+
     if (digits < 0) {
       throw new RangeError('toFixed() digits argument must be non-negative');
     }
@@ -524,11 +568,13 @@ Object.assign(Decimal.prototype, {
     if (this.isZero()) {
       return '0' + (digits > 1 ? '.' + '0'.repeat(digits) : '');
     }
-    let {sign, accuracy} = this;
-    let string = this.toString();
-    let padding = digits - accuracy;
+    var sign = this.sign;
+    var accuracy = this.accuracy;
+
+    var string = this.toString();
+    var padding = digits - accuracy;
     if (padding < 0) {
-      let rounding = +string.charAt(string.length + padding);
+      var rounding = +string.charAt(string.length + padding);
       if (rounding >= 5) {
         string = this.add(Decimal.exp(-digits).set('sign', sign)).toString();
       }
@@ -539,19 +585,24 @@ Object.assign(Decimal.prototype, {
     return string;
   },
 
-  toExponential(digits = this.precision) {
+  toExponential: function toExponential() {
+    var digits = arguments.length <= 0 || arguments[0] === undefined ? this.precision : arguments[0];
+
     if (digits < 0) {
       throw new RangeError('toExponential() digits argument must be non-negative');
     }
 
-    let {sign, exponent, precision} = this;
+    var sign = this.sign;
+    var exponent = this.exponent;
+    var precision = this.precision;
+
     if (sign === 0) {
       return '0' + (digits > 1 ? '.' + '0'.repeat(digits) : '') + 'e+0';
     }
-    let string = this.toString().replace(/\D/g, '').replace(/^0*/, '');
-    let padding = digits - precision;
+    var string = this.toString().replace(/\D/g, '').replace(/^0*/, '');
+    var padding = digits - precision;
     if (padding < -1) {
-      let rounding = +string.charAt(digits + 1);
+      var rounding = +string.charAt(digits + 1);
       if (rounding >= 5) {
         string = new Decimal(string.slice(0, digits + 1)).add(Decimal.ONE).toString();
       }
@@ -564,7 +615,7 @@ Object.assign(Decimal.prototype, {
     return (sign === -1 ? '-' : '') + string + 'e' + (exponent > 0 ? '+' : '') + exponent;
   },
 
-  toPrecision(digits) {
+  toPrecision: function toPrecision(digits) {
     if (digits === undefined) {
       return this.toString();
     }
@@ -572,7 +623,10 @@ Object.assign(Decimal.prototype, {
       throw new RangeError('toPrecision() digits argument must be non-negative');
     }
 
-    let {exponent, precision, accuracy} = this;
+    var exponent = this.exponent;
+    var precision = this.precision;
+    var accuracy = this.accuracy;
+
     if (this.isZero()) {
       return '0' + (digits > 1 ? '.' + '0'.repeat(digits - 1) : '');
     }
@@ -582,19 +636,24 @@ Object.assign(Decimal.prototype, {
     return this.toExponential(digits - 1);
   },
 
-  get toJSON() {
-    return this.toString;
-  },
-
-  toSource() {
+  toSource: function toSource() {
     return Object.assign({}, this, {
       sequence: this.sequence.slice()
     });
   },
 
-  clone() {
+  clone: function clone() {
     return new Decimal(this.toSource());
   }
-});
+}, {
+  toJSON: {
+    get: function get() {
+      return this.toString;
+    },
+    configurable: true,
+    enumerable: true
+  }
+}));
 
-export default Decimal;
+exports['default'] = Decimal;
+module.exports = exports['default'];
