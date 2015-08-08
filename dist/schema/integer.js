@@ -6,11 +6,11 @@ Object.defineProperty(exports, '__esModule', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-var _decimal = require('decimal');
+var _decimal = require('./decimal');
 
 var _decimal2 = _interopRequireDefault(_decimal);
 
-var _math = require('math');
+var _math = require('./math');
 
 var _math2 = _interopRequireDefault(_math);
 

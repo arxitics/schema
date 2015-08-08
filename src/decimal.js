@@ -187,8 +187,12 @@ Object.assign(Decimal.prototype, {
       return false;
     }
 
-    return sequence.length === other.sequence.length &&
-      other.sequence.every((value, index) => value === sequence[index]);
+
+    let list = other.sequence;
+    if (sequence.length >= list.length) {
+      return sequence.every((value, index) => value === (list[index]|0));
+    }
+    return list.every((value, index) => value === (sequence[index]|0));
   },
 
   lt(other) {
@@ -197,13 +201,23 @@ Object.assign(Decimal.prototype, {
     }
 
     let {sign, exponent, sequence} = this;
-    if (sign !== other.sign) {
-      return sign < other.sign;
+    let {sign: signum, exponent: power, sequence: list} = other;
+    if (sign !== signum) {
+      return sign < signum;
     }
 
-    let less = (exponent !== other.exponent) ?
-      exponent < other.exponent :
-      other.sequence.some((value, index) => value > (sequence[index]|0));
+    let less = false;
+    if (exponent !== power) {
+      less = exponent < power;
+    } else {
+      let length = Math.max(sequence.length, list.length);
+      for (let i = 0; i < length; i++) {
+        if ((sequence[i]|0) !== (list[i]|0)) {
+          less = (sequence[i]|0) < (list[i]|0);
+          break;
+        }
+      }
+    }
     return sign === 1 ? less : !less;
   },
 
@@ -423,7 +437,7 @@ Object.assign(Decimal.prototype, {
     return this.mul(other.inv(digits + 1), digits);
   },
 
-  // use Newton's method to find the reciprocal
+  // use Newton's method to approximate the reciprocal
   inv(digits = 16) {
     let {sign, exponent, sequence} = this;
     const one = Decimal.ONE;
@@ -436,7 +450,7 @@ Object.assign(Decimal.prototype, {
     if (this.eq(one)) {
       return one;
     }
-    if (this.gt(one) || this.lt(new Decimal(0.1))) {
+    if (this.gt(one) || this.lt(Decimal.exp(-1))) {
       let string = this.toString().replace(/^0\.0+|\./, '');
       return new Decimal('0.' + string).inv(digits).mul(Decimal.exp(-exponent - 1));
     }

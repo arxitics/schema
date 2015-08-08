@@ -6,7 +6,7 @@ Object.defineProperty(exports, '__esModule', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-var _decimal = require('decimal');
+var _decimal = require('./decimal');
 
 var _decimal2 = _interopRequireDefault(_decimal);
 
@@ -39,6 +39,7 @@ Object.assign(math, {
     return integer.add(_decimal2['default'].ONE);
   },
 
+  // use Newton's method to approximate the square root
   sqrt: function sqrt(n) {
     var digits = arguments.length <= 1 || arguments[1] === undefined ? 16 : arguments[1];
 
@@ -50,14 +51,14 @@ Object.assign(math, {
 
     var exponent = num.exponent;
     if (num.lt(one) || num.gt(_decimal2['default'].exp(2))) {
-      exponent += exponent % 2;
-      return math.sqrt(num.div(_decimal2['default'].exp(exponent))).mul(_decimal2['default'].exp(exponent / 2));
+      exponent -= exponent % 2;
+      return math.sqrt(num.div(_decimal2['default'].exp(exponent)), digits + exponent).mul(_decimal2['default'].exp(exponent / 2)).toAccuracy(digits);
     }
 
     var accuracy = digits + 2;
     var half = new _decimal2['default'](0.5);
-    var epsilon = _decimal2['default'].exp(-digits);
-    var root = new _decimal2['default'](num.lt(_decimal2['default'].exp(1)) ? 2 : 6);
+    var epsilon = _decimal2['default'].exp(-digits - 1);
+    var root = new _decimal2['default'](Math.sqrt(num.sequence[0]));
     var error = root.mul(root, accuracy).sub(num);
     while (epsilon.lt(error.abs())) {
       root = root.add(num.div(root, accuracy)).mul(half);
@@ -66,7 +67,39 @@ Object.assign(math, {
     return root.toAccuracy(digits);
   },
 
+  // Halley’s method to approximate the cube root
+  cbrt: function cbrt(n) {
+    var digits = arguments.length <= 1 || arguments[1] === undefined ? 16 : arguments[1];
+
+    var num = new _decimal2['default'](n);
+    var one = _decimal2['default'].ONE;
+    if (num.isNegative()) {
+      return math.cbrt(this.neg(), digits).neg();
+    }
+
+    var exponent = num.exponent;
+    if (num.lt(one) || num.gt(_decimal2['default'].exp(3))) {
+      exponent -= exponent % 3;
+      return math.cbrt(num.div(_decimal2['default'].exp(exponent)), digits + exponent).mul(_decimal2['default'].exp(exponent / 3)).toAccuracy(digits);
+    }
+
+    var accuracy = digits + 3;
+    var two = new _decimal2['default'](2);
+    var epsilon = _decimal2['default'].exp(-digits - 1);
+    var root = new _decimal2['default'](Math.cbrt(num.sequence[0]));
+    var cube = math.pow(root, 3, accuracy);
+    var error = cube.sub(num);
+    while (epsilon.lt(error.abs())) {
+      root = root.mul(cube.add(num.mul(two)).div(cube.mul(two).add(num), accuracy));
+      cube = math.pow(root, 3, accuracy);
+      error = cube.sub(num);
+    }
+    return root.toAccuracy(digits);
+  },
+
   pow: function pow(b, n) {
+    var digits = arguments.length <= 2 || arguments[2] === undefined ? 16 : arguments[2];
+
     var base = new _decimal2['default'](b);
     var num = new _decimal2['default'](n);
     var one = _decimal2['default'].ONE;

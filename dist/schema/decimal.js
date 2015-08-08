@@ -208,8 +208,14 @@ Object.assign(Decimal.prototype, Object.defineProperties({
       return false;
     }
 
-    return sequence.length === other.sequence.length && other.sequence.every(function (value, index) {
-      return value === sequence[index];
+    var list = other.sequence;
+    if (sequence.length >= list.length) {
+      return sequence.every(function (value, index) {
+        return value === (list[index] | 0);
+      });
+    }
+    return list.every(function (value, index) {
+      return value === (sequence[index] | 0);
     });
   },
 
@@ -221,14 +227,26 @@ Object.assign(Decimal.prototype, Object.defineProperties({
     var sign = this.sign;
     var exponent = this.exponent;
     var sequence = this.sequence;
+    var signum = other.sign;
+    var power = other.exponent;
+    var list = other.sequence;
 
-    if (sign !== other.sign) {
-      return sign < other.sign;
+    if (sign !== signum) {
+      return sign < signum;
     }
 
-    var less = exponent !== other.exponent ? exponent < other.exponent : other.sequence.some(function (value, index) {
-      return value > (sequence[index] | 0);
-    });
+    var less = false;
+    if (exponent !== power) {
+      less = exponent < power;
+    } else {
+      var _length = Math.max(sequence.length, list.length);
+      for (var i = 0; i < _length; i++) {
+        if ((sequence[i] | 0) !== (list[i] | 0)) {
+          less = (sequence[i] | 0) < (list[i] | 0);
+          break;
+        }
+      }
+    }
     return sign === 1 ? less : !less;
   },
 
@@ -387,7 +405,7 @@ Object.assign(Decimal.prototype, Object.defineProperties({
       var multiplicand = foreign.multiplicand;
       var multiplier = foreign.multiplier;
       var values = new stdlib.Int32Array(buffer);
-      for (var index = 0, _length = values.length; index < _length; index++) {
+      for (var index = 0, _length2 = values.length; index < _length2; index++) {
         var value = values[index];
         var nextIndex = index + 1;
         for (var i = 0; i <= index; i++) {
@@ -453,7 +471,7 @@ Object.assign(Decimal.prototype, Object.defineProperties({
     return this.mul(other.inv(digits + 1), digits);
   },
 
-  // use Newton's method to find the reciprocal
+  // use Newton's method to approximate the reciprocal
   inv: function inv() {
     var digits = arguments.length <= 0 || arguments[0] === undefined ? 16 : arguments[0];
     var sign = this.sign;
@@ -470,7 +488,7 @@ Object.assign(Decimal.prototype, Object.defineProperties({
     if (this.eq(one)) {
       return one;
     }
-    if (this.gt(one) || this.lt(new Decimal(0.1))) {
+    if (this.gt(one) || this.lt(Decimal.exp(-1))) {
       var string = this.toString().replace(/^0\.0+|\./, '');
       return new Decimal('0.' + string).inv(digits).mul(Decimal.exp(-exponent - 1));
     }
@@ -545,9 +563,9 @@ Object.assign(Decimal.prototype, Object.defineProperties({
       return '0'.repeat(8 - String(value).length) + value;
     }).join('');
     if (accuracy > 0) {
-      var _length2 = string.length;
-      if (accuracy > _length2) {
-        string = '0'.repeat(accuracy - _length2) + string;
+      var _length3 = string.length;
+      if (accuracy > _length3) {
+        string = '0'.repeat(accuracy - _length3) + string;
       }
       if (accuracy % 8) {
         string = string.slice(0, accuracy % 8 - 8);

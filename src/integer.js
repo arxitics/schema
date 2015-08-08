@@ -1,6 +1,6 @@
 
-import Decimal from 'decimal';
-import math from 'math';
+import Decimal from './decimal';
+import math from './math';
 
 var integer = {};
 
