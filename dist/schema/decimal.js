@@ -565,7 +565,7 @@ Object.assign(Decimal.prototype, Object.defineProperties({
     if (accuracy > 0) {
       var _length3 = string.length;
       if (accuracy > _length3) {
-        string = '0'.repeat(accuracy - _length3) + string;
+        string = '0'.repeat(accuracy - _length3 + 8) + string;
       }
       if (accuracy % 8) {
         string = string.slice(0, accuracy % 8 - 8);

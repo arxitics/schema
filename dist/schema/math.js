@@ -51,17 +51,18 @@ Object.assign(math, {
 
     var exponent = num.exponent;
     if (num.lt(one) || num.gt(_decimal2['default'].exp(2))) {
-      exponent -= exponent % 2;
-      return math.sqrt(num.div(_decimal2['default'].exp(exponent)), digits + exponent).mul(_decimal2['default'].exp(exponent / 2)).toAccuracy(digits);
+      var _accuracy = digits + Math.abs(exponent);
+      exponent -= (2 + exponent % 2) % 2;
+      return math.sqrt(num.div(_decimal2['default'].exp(exponent)), _accuracy).mul(_decimal2['default'].exp(exponent / 2)).toAccuracy(digits);
     }
 
     var accuracy = digits + 2;
     var half = new _decimal2['default'](0.5);
-    var epsilon = _decimal2['default'].exp(-digits - 1);
+    var epsilon = _decimal2['default'].exp(-digits);
     var root = new _decimal2['default'](Math.sqrt(num.sequence[0]));
     var error = root.mul(root, accuracy).sub(num);
     while (epsilon.lt(error.abs())) {
-      root = root.add(num.div(root, accuracy)).mul(half);
+      root = root.add(num.div(root, accuracy)).mul(half, accuracy);
       error = root.mul(root, accuracy).sub(num);
     }
     return root.toAccuracy(digits);
@@ -79,13 +80,14 @@ Object.assign(math, {
 
     var exponent = num.exponent;
     if (num.lt(one) || num.gt(_decimal2['default'].exp(3))) {
-      exponent -= exponent % 3;
-      return math.cbrt(num.div(_decimal2['default'].exp(exponent)), digits + exponent).mul(_decimal2['default'].exp(exponent / 3)).toAccuracy(digits);
+      var _accuracy2 = digits + Math.abs(exponent);
+      exponent -= (3 + exponent % 3) % 3;
+      return math.cbrt(num.div(_decimal2['default'].exp(exponent)), _accuracy2).mul(_decimal2['default'].exp(exponent / 3)).toAccuracy(digits);
     }
 
     var accuracy = digits + 3;
     var two = new _decimal2['default'](2);
-    var epsilon = _decimal2['default'].exp(-digits - 1);
+    var epsilon = _decimal2['default'].exp(-digits);
     var root = new _decimal2['default'](Math.cbrt(num.sequence[0]));
     var cube = math.pow(root, 3, accuracy);
     var error = cube.sub(num);
@@ -107,7 +109,7 @@ Object.assign(math, {
       return one;
     }
     if (num.isNegative()) {
-      return math.pow(base, num.neg()).inv();
+      return math.pow(base, num.neg(), digits).inv();
     }
     if (num.isInteger()) {
       var two = new _decimal2['default'](2);
@@ -122,10 +124,29 @@ Object.assign(math, {
       }
       return math.pow(math.pow(base, num.div(two).toInteger()), two);
     }
-    if (num.gt(one)) {
-      var integer = math.floor(num);
-      return math.pow(base, integer).mul(math.pow(base, num.sub(integer)));
+    if (num.gte(one)) {
+      var i = math.floor(num);
+      var a = math.pow(base, i).toAccuracy(digits);
+      var _b = math.pow(base, num.sub(i), digits + a.exponent + 2);
+      return a.mul(_b).toAccuracy(digits);
     }
+
+    var accuracy = digits + base.exponent + 2;
+    var half = new _decimal2['default'](0.5);
+    var epsilon = _decimal2['default'].exp(-accuracy);
+    var root = base;
+    var power = num;
+    var exponent = one;
+    var product = one;
+    while (epsilon.lt(root.sub(one).abs())) {
+      exponent = exponent.mul(half);
+      root = math.sqrt(root, accuracy);
+      if (exponent.lte(power)) {
+        product = product.mul(root, accuracy);
+        power = power.sub(exponent);
+      }
+    }
+    return product.toAccuracy(digits);
   },
 
   sum: function sum() {

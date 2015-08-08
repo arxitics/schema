@@ -15,6 +15,12 @@ describe('Decimal', () => {
     });
   });
 
+  describe('exp()', () => {
+    it('should retrn an instance of the Decimal class', () => {
+      assert.deepEqual(Decimal.exp(-14), new Decimal('0.00000000000001'));
+    });
+  });
+
   describe('eq()', () => {
     it('should be equal if two numbers only differ in trailing zeros after the decimal point', () => {
       assert.equal(new Decimal('1.00').eq(Decimal.ONE), true);

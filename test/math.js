@@ -6,8 +6,8 @@ let assert = require('assert');
 describe('math', () => {
   describe('sqrt()', () => {
     it('should return an aproximation to the square root', () => {
-      let s = new Decimal('1234.567');
-      let r = new Decimal('35.1364056215202525');
+      let s = new Decimal('0.1234567');
+      let r = new Decimal('0.3513640562152025');
       assert.equal(math.sqrt(s).sub(r).abs().lt(Decimal.exp(-15)), true);
     });
   });
@@ -17,6 +17,22 @@ describe('math', () => {
       let s = new Decimal('1234.567');
       let r = new Decimal('10.7276572185535815');
       assert.equal(math.cbrt(s).sub(r).abs().lt(Decimal.exp(-15)), true);
+    });
+  });
+
+  describe('pow()', () => {
+    it('should return exact value for integer power by default', () => {
+      let b = new Decimal(1.23);
+      let n = new Decimal(20);
+      let v = new Decimal('62.8206215175202159781085149496179361969201');
+      assert.deepEqual(math.pow(b, n), v);
+    });
+
+    it('should return an approximation to the exponentiation', () => {
+      let b = new Decimal(1.23);
+      let n = new Decimal(20.8);
+      let v = new Decimal('74.1355165540178986');
+      assert.equal(math.pow(b, n).sub(v).abs().lt(Decimal.exp(-15)), true);
     });
   });
 });

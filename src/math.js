@@ -40,18 +40,19 @@ Object.assign(math, {
 
     let exponent = num.exponent;
     if (num.lt(one) || num.gt(Decimal.exp(2))) {
-      exponent -= exponent % 2;
-      return math.sqrt(num.div(Decimal.exp(exponent)), digits + exponent)
+      let accuracy = digits + Math.abs(exponent);
+      exponent -= (2 + exponent % 2) % 2;
+      return math.sqrt(num.div(Decimal.exp(exponent)), accuracy)
         .mul(Decimal.exp(exponent / 2)).toAccuracy(digits);
     }
 
     const accuracy = digits + 2;
     const half = new Decimal(0.5);
-    const epsilon = Decimal.exp(-digits - 1);
+    const epsilon = Decimal.exp(-digits);
     let root = new Decimal(Math.sqrt(num.sequence[0]));
     let error = root.mul(root, accuracy).sub(num);
     while (epsilon.lt(error.abs())) {
-      root = root.add(num.div(root, accuracy)).mul(half);
+      root = root.add(num.div(root, accuracy)).mul(half, accuracy);
       error = root.mul(root, accuracy).sub(num);
     }
     return root.toAccuracy(digits);
@@ -67,14 +68,15 @@ Object.assign(math, {
 
     let exponent = num.exponent;
     if (num.lt(one) || num.gt(Decimal.exp(3))) {
-      exponent -= exponent % 3;
-      return math.cbrt(num.div(Decimal.exp(exponent)), digits + exponent)
+      let accuracy = digits + Math.abs(exponent);
+      exponent -= (3 + exponent % 3) % 3;
+      return math.cbrt(num.div(Decimal.exp(exponent)), accuracy)
         .mul(Decimal.exp(exponent / 3)).toAccuracy(digits);
     }
 
     const accuracy = digits + 3;
     const two = new Decimal(2);
-    const epsilon = Decimal.exp(-digits - 1);
+    const epsilon = Decimal.exp(-digits);
     let root = new Decimal(Math.cbrt(num.sequence[0]));
     let cube = math.pow(root, 3, accuracy);
     let error = cube.sub(num);
@@ -94,7 +96,7 @@ Object.assign(math, {
       return one;
     }
     if (num.isNegative()) {
-      return math.pow(base, num.neg()).inv();
+      return math.pow(base, num.neg(), digits).inv();
     }
     if (num.isInteger()) {
       const two = new Decimal(2);
@@ -109,10 +111,29 @@ Object.assign(math, {
       }
       return math.pow(math.pow(base, num.div(two).toInteger()), two);
     }
-    if (num.gt(one)) {
-      let integer = math.floor(num);
-      return math.pow(base, integer).mul(math.pow(base, num.sub(integer)));
+    if (num.gte(one)) {
+      let i = math.floor(num);
+      let a = math.pow(base, i).toAccuracy(digits);
+      let b = math.pow(base, num.sub(i), digits + a.exponent + 2);
+      return a.mul(b).toAccuracy(digits);
     }
+
+    const accuracy = digits + base.exponent + 2;
+    const half = new Decimal(0.5);
+    const epsilon = Decimal.exp(-accuracy);
+    let root = base;
+    let power = num;
+    let exponent = one;
+    let product = one;
+    while (epsilon.lt(root.sub(one).abs())) {
+      exponent = exponent.mul(half);
+      root = math.sqrt(root, accuracy);
+      if (exponent.lte(power)) {
+        product = product.mul(root, accuracy);
+        power = power.sub(exponent);
+      }
+    }
+    return product.toAccuracy(digits);
   },
 
   sum(...values) {

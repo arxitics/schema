@@ -519,7 +519,7 @@ Object.assign(Decimal.prototype, {
     if (accuracy > 0) {
       let length = string.length;
       if (accuracy > length) {
-        string = '0'.repeat(accuracy - length) + string;
+        string = '0'.repeat(accuracy - length + 8) + string;
       }
       if (accuracy % 8) {
         string = string.slice(0, accuracy % 8 - 8);
