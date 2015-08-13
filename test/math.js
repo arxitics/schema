@@ -8,6 +8,7 @@ describe('math', () => {
     it('should return an aproximation to the square root', () => {
       let s = new Decimal('0.1234567');
       let r = new Decimal('0.3513640562152025');
+      console.log(math.sqrt(s, 200).toString());
       assert.equal(math.sqrt(s).sub(r).abs().lt(Decimal.exp(-15)), true);
     });
   });
@@ -16,6 +17,7 @@ describe('math', () => {
     it('should return an aproximation to the cube root', () => {
       let s = new Decimal('1234.567');
       let r = new Decimal('10.7276572185535815');
+      console.log(math.cbrt(s, 200).toString());
       assert.equal(math.cbrt(s).sub(r).abs().lt(Decimal.exp(-15)), true);
     });
   });

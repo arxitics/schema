@@ -60,10 +60,12 @@ Object.assign(math, {
     var half = new _decimal2['default'](0.5);
     var epsilon = _decimal2['default'].exp(-digits);
     var root = new _decimal2['default'](Math.sqrt(num.sequence[0]));
-    var error = root.mul(root, accuracy).sub(num);
+    var square = root.mul(root, accuracy);
+    var error = square.sub(num);
     while (epsilon.lt(error.abs())) {
       root = root.add(num.div(root, accuracy)).mul(half, accuracy);
-      error = root.mul(root, accuracy).sub(num);
+      square = root.mul(root, accuracy);
+      error = square.sub(num);
     }
     return root.toAccuracy(digits);
   },
@@ -89,11 +91,11 @@ Object.assign(math, {
     var two = new _decimal2['default'](2);
     var epsilon = _decimal2['default'].exp(-digits);
     var root = new _decimal2['default'](Math.cbrt(num.sequence[0]));
-    var cube = math.pow(root, 3, accuracy);
+    var cube = root.mul(root, accuracy).mul(root, accuracy);
     var error = cube.sub(num);
     while (epsilon.lt(error.abs())) {
       root = root.mul(cube.add(num.mul(two)).div(cube.mul(two).add(num), accuracy));
-      cube = math.pow(root, 3, accuracy);
+      cube = root.mul(root, accuracy).mul(root, accuracy);
       error = cube.sub(num);
     }
     return root.toAccuracy(digits);

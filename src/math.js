@@ -50,10 +50,12 @@ Object.assign(math, {
     const half = new Decimal(0.5);
     const epsilon = Decimal.exp(-digits);
     let root = new Decimal(Math.sqrt(num.sequence[0]));
-    let error = root.mul(root, accuracy).sub(num);
+    let square = root.mul(root, accuracy);
+    let error = square.sub(num);
     while (epsilon.lt(error.abs())) {
       root = root.add(num.div(root, accuracy)).mul(half, accuracy);
-      error = root.mul(root, accuracy).sub(num);
+      square = root.mul(root, accuracy);
+      error = square.sub(num);
     }
     return root.toAccuracy(digits);
   },
@@ -78,11 +80,11 @@ Object.assign(math, {
     const two = new Decimal(2);
     const epsilon = Decimal.exp(-digits);
     let root = new Decimal(Math.cbrt(num.sequence[0]));
-    let cube = math.pow(root, 3, accuracy);
+    let cube = root.mul(root, accuracy).mul(root, accuracy);
     let error = cube.sub(num);
     while (epsilon.lt(error.abs())) {
       root = root.mul(cube.add(num.mul(two)).div(cube.mul(two).add(num), accuracy));
-      cube = math.pow(root, 3, accuracy);
+      cube = root.mul(root, accuracy).mul(root, accuracy);
       error = cube.sub(num);
     }
     return root.toAccuracy(digits);
